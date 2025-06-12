@@ -6,7 +6,7 @@ __pycache__
 */__pycache__/
 *.pyc
 dist/app.log
-
+encode_project.bat
 # Python cache folders
 **/__pycache__/
 *.py[cod]
