@@ -1,0 +1,13 @@
+/app.log
+/build
+/dist/
+/data.db
+__pycache__
+*/__pycache__/
+*.pyc
+dist/app.log
+
+# Python cache folders
+**/__pycache__/
+*.py[cod]
+*$py.class
