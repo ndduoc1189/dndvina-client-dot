@@ -4,7 +4,6 @@ setlocal enabledelayedexpansion
 :: Set output directory
 set OUTPUT_DIR=D:\auto-dndvina\dndvina-client-dot
 
-:: Create output directory
 if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
 
 :: Run encoding
