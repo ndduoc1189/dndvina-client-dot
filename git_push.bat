@@ -7,21 +7,22 @@ echo       Git Push và Sync Tool
 echo ================================
 echo.
 
-:: Lấy ngày giờ hiện tại theo định dạng dd/MM/yyyy HH:mm:ss
-for /f "tokens=1-6 delims=/ : " %%a in ('echo %date% %time%') do (
-    set day=%%a
-    set month=%%b
-    set year=%%c
-    set hour=%%d
-    set minute=%%e
-    set second=%%f
-)
+:: Lấy ngày giờ hiện tại một cách chính xác
+for /f "tokens=2 delims==" %%i in ('wmic OS Get localdatetime /value') do call :set_datetime %%i
+goto :after_datetime
 
-:: Loại bỏ khoảng trắng thừa trong giờ
-set hour=%hour: =0%
-set minute=%minute: =0%
-set second=%second: =0%
+:set_datetime
+if "%1"=="" goto :eof
+set datetime=%1
+set year=%datetime:~0,4%
+set month=%datetime:~4,2%
+set day=%datetime:~6,2%
+set hour=%datetime:~8,2%
+set minute=%datetime:~10,2%
+set second=%datetime:~12,2%
+goto :eof
 
+:after_datetime
 :: Tạo commit message với ngày giờ hiện tại
 set commit_msg=Auto update: %day%/%month%/%year% %hour%:%minute%:%second%
 
