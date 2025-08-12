@@ -26,26 +26,41 @@ print(proxy_info)
 
 ## 2. Trong Job Handlers (TikTok/Instagram Job)
 
-# Có thể truy cập proxy service thông qua job service
-class TiktokJob(BaseJob):
-    def perform_job(self, account):
+# Job handlers sẽ có proxy_service được set tự động từ JobService
+class InstagramJob(BaseJob):
+    def validate_app_not_banned(self):
         # Nếu gặp lỗi IP bị block, có thể reset IP
+        if page_not_available:
+            self.logger.warning("Phát hiện trang không hiển thị, đang reset proxy và làm mới")
+            
+            # Reset IP thông qua proxy_service
+            if self.proxy_service:
+                reset_success = self.proxy_service.force_reset_current_ip()
+                if reset_success:
+                    self.logger.info("Đã reset IP thành công")
+                    self.safe_sleep(2)  # Chờ IP mới có hiệu lực
+                else:
+                    self.logger.error("Reset IP thất bại")
+            else:
+                self.logger.warning("Proxy service chưa được thiết lập")
+    
+    def _perform_follow_job(self, profile_link):
         try:
             # Thực hiện job bình thường...
-            result = self._perform_follow_job(link)
+            result = self._attempt_follow(profile_link)
             
             if result == 2:  # Lỗi có thể do IP bị block
                 self.logger.info("Job thất bại, thử reset IP và làm lại")
                 
-                # Reset IP thông qua job service (nếu có reference)
-                if hasattr(self, 'job_service') and self.job_service:
-                    reset_success = self.job_service.reset_current_proxy_ip()
+                # Reset IP thông qua proxy_service
+                if self.proxy_service:
+                    reset_success = self.proxy_service.force_reset_current_ip()
                     if reset_success:
                         self.logger.info("Đã reset IP thành công, thử job lại")
                         # Chờ một chút để IP mới có hiệu lực
                         self.safe_sleep(5)
                         # Thử lại job
-                        result = self._perform_follow_job(link)
+                        result = self._attempt_follow(profile_link)
                     
             return result
             
@@ -84,24 +99,58 @@ is_active = proxy_service.is_proxy_active()
 status = proxy_service.get_proxy_status()
 info = proxy_service.get_proxy_info()
 
-## 4. Các trường hợp sử dụng thực tế
+## 4. Cách ProxyService được Inject vào Job Handlers
+
+```python
+# Trong JobService, proxy_service sẽ được inject vào mỗi job handler
+class JobService:
+    def __init__(self):
+        self.proxy_service = ProxyService()
+        self.job_handlers = {}
+        self._init_job_handlers()
+    
+    def _init_job_handlers(self):
+        """Khởi tạo job handlers và inject proxy_service"""
+        # TikTok job handler
+        if self.config.is_tiktok_job_enabled:
+            tiktok_job = TiktokJob(self.logger, self.db_service, self.config, 'tiktok')
+            tiktok_job.set_proxy_service(self.proxy_service)  # Inject proxy service
+            self.job_handlers['tiktok'] = tiktok_job
+        
+        # Instagram job handler
+        if self.config.is_instagram_job_enabled:
+            instagram_job = InstagramJob(self.logger, self.db_service, self.config, 'instagram')  
+            instagram_job.set_proxy_service(self.proxy_service)  # Inject proxy service
+            self.job_handlers['instagram'] = instagram_job
+    
+    # Convenience methods để JobService có thể điều khiển proxy
+    def reset_current_proxy_ip(self):
+        return self.proxy_service.force_reset_current_ip()
+    
+    def get_proxy_status(self):
+        return self.proxy_service.get_proxy_status()
+```
+
+## 5. Các trường hợp sử dụng thực tế
 
 # A. Reset IP khi gặp lỗi rate limit
 if job_result == 3:  # Rate limit or blocked
     self.logger.warning("Có thể bị rate limit, reset IP")
-    self.job_service.reset_current_proxy_ip()
-    self.safe_sleep(10)  # Chờ IP mới
+    if self.proxy_service:
+        self.proxy_service.force_reset_current_ip()
+        self.safe_sleep(10)  # Chờ IP mới
     
 # B. Reset IP định kỳ mỗi 10 job
 self.job_count += 1
 if self.job_count % 10 == 0:
     self.logger.info("Reset IP định kỳ sau 10 job")
-    self.job_service.reset_current_proxy_ip()
+    if self.proxy_service:
+        self.proxy_service.force_reset_current_ip()
 
 # C. Reset IP khi chuyển tài khoản
 def switch_to_account(self, account):
     success = super().switch_to_account(account)
-    if success:
+    if success and self.proxy_service:
         # Reset IP khi chuyển tài khoản để tránh liên kết
         self.logger.info("Chuyển tài khoản thành công, reset IP")
         self.job_service.reset_current_proxy_ip()
