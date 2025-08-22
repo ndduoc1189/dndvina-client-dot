@@ -87,13 +87,16 @@ SMART_CARE_CHANCE_PERCENT = 70
 5. **Cleanup** - Removed obsolete configs và code
 6. **Post Content Integration** - Thêm post_content action với logic 2 ngày
 7. **Proxy Integration** - Kiểm tra proxy trước khi care nếu bắt buộc dùng proxy
+8. **App Management** - Tự động đóng app sau khi care hoàn tất để tránh background
 
 ### 🔧 Smart Care Workflow:
 1. **Basic Checks** - enable_care, interval, random chance
 2. **Proxy Validation** - Kiểm tra proxy config và trạng thái nếu use_proxy=true
 3. **Care Type Selection** - Chọn action dựa vào account status và context
 4. **Execution** - Thực hiện care với proxy nếu cần
-5. **Database Update** - Cập nhật last_care_time và last_post_newfeed
+5. **Back to Home** - Care methods tự động về trang chủ
+6. **Close App** - JobService đóng app sau khi care hoàn tất
+7. **Database Update** - Cập nhật last_care_time và last_post_newfeed
 
 ### 🎯 System Ready for Production
 Smart Care System đã được implement hoàn chỉnh và sẵn sàng hoạt động!
